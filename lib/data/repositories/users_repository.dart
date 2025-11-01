@@ -1,63 +1,58 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import '../models/app_user.dart';
-import '../services/firebase_service.dart';
+import '../api/api_client.dart';
 
 class UsersRepository {
-  bool get _ready => FirebaseService.initialized;
-
-  FirebaseFirestore get _db => FirebaseService.db;
-  DocumentReference<Map<String, dynamic>> _doc(String uid) =>
-      _db.collection('users').doc(uid);
-  Query<Map<String, dynamic>> _byRole(String role) =>
-      _db.collection('users').where('role', isEqualTo: role);
-  Query<Map<String, dynamic>> _byEmailIn(List<String> emails) =>
-      _db.collection('users').where('email', whereIn: emails);
+  const UsersRepository();
 
   Future<void> setUser(AppUser user) async {
-    if (!_ready) {
-      throw StateError('Firebase non configuré.');
+    final http.Response res = await ApiClient.put('/users/${user.id}', user.toMap());
+    if (res.statusCode >= 400) {
+      throw StateError('API setUser failed: ${res.statusCode} ${res.body}');
     }
-    await _doc(user.id).set(user.toMap(), SetOptions(merge: true));
   }
 
   Future<AppUser?> getUser(String uid) async {
-    if (!_ready) return null;
-    final snap = await _doc(uid).get();
-    if (!snap.exists) return null;
-    return AppUser.fromMap(snap.id, snap.data()!);
+    final res = await ApiClient.get('/users/$uid');
+    if (res.statusCode == 404) return null;
+    if (res.statusCode >= 400) {
+      throw StateError('API getUser failed: ${res.statusCode} ${res.body}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return AppUser.fromMap(data['id'] as String? ?? uid, data);
   }
 
   Stream<AppUser?> watchUser(String uid) {
-    if (!_ready) return const Stream.empty();
-    return _doc(uid).snapshots().map((s) => s.data() == null
-        ? null
-        : AppUser.fromMap(s.id, s.data()!));
+    return Stream<AppUser?>.periodic(const Duration(seconds: 2))
+        .asyncMap((_) => getUser(uid));
   }
 
   Stream<List<AppUser>> watchUsersByRole(String role) {
-    if (!_ready) return const Stream.empty();
-    return _byRole(role).snapshots().map((snap) => snap.docs
-        .map((d) => AppUser.fromMap(d.id, d.data()))
-        .toList());
+    return Stream<List<AppUser>>.periodic(const Duration(seconds: 2))
+        .asyncMap((_) => getUsersByRole(role));
   }
 
   Future<List<AppUser>> getUsersByRole(String role) async {
-    if (!_ready) return [];
-    final snap = await _byRole(role).get();
-    return snap.docs.map((d) => AppUser.fromMap(d.id, d.data())).toList();
+    final res = await ApiClient.get('/users', query: {'role': role});
+    if (res.statusCode >= 400) {
+      throw StateError('API getUsersByRole failed: ${res.statusCode} ${res.body}');
+    }
+    final list = (jsonDecode(res.body) as List)
+        .cast<Map<String, dynamic>>();
+    return list.map((m) => AppUser.fromMap(m['id'] as String? ?? (m['_id']?.toString() ?? ''), m)).toList();
   }
 
   Future<List<AppUser>> findByEmails(List<String> emails) async {
-    if (!_ready || emails.isEmpty) return [];
-    // Firestore whereIn max is 10 values per query.
-    const int chunk = 10;
-    final List<AppUser> out = [];
-    for (int i = 0; i < emails.length; i += chunk) {
-      final part = emails.sublist(i, i + chunk > emails.length ? emails.length : i + chunk);
-      final snap = await _byEmailIn(part).get();
-      out.addAll(snap.docs.map((d) => AppUser.fromMap(d.id, d.data())));
+    if (emails.isEmpty) return [];
+    final res = await ApiClient.post('/users/by-emails', {'emails': emails});
+    if (res.statusCode >= 400) {
+      throw StateError('API findByEmails failed: ${res.statusCode} ${res.body}');
     }
-    return out;
+    final list = (jsonDecode(res.body) as List)
+        .cast<Map<String, dynamic>>();
+    return list.map((m) => AppUser.fromMap(m['id'] as String? ?? (m['_id']?.toString() ?? ''), m)).toList();
   }
 }

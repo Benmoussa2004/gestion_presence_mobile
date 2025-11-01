@@ -1,15 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import '../models/attendance_model.dart';
-import '../services/firebase_service.dart';
+import '../api/api_client.dart';
 
 class AttendanceRepository {
-  final FirebaseFirestore _db = FirebaseService.db;
-  CollectionReference<Map<String, dynamic>> get _col => _db.collection('attendances');
+  const AttendanceRepository();
 
   Future<String> markAttendance(AttendanceModel model) async {
-    final doc = await _col.add(model.toMap());
-    return doc.id;
+    final http.Response res = await ApiClient.post('/attendances', model.toMap());
+    if (res.statusCode >= 400) throw StateError('API markAttendance failed: ${res.statusCode} ${res.body}');
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return (data['id'] ?? data['_id'] ?? '') as String;
   }
 
   /// Upsert attendance by (sessionId, studentId)
@@ -19,32 +22,23 @@ class AttendanceRepository {
     required String status,
     required DateTime markedAt,
   }) async {
-    final existing = await _col
-        .where('sessionId', isEqualTo: sessionId)
-        .where('studentId', isEqualTo: studentId)
-        .limit(1)
-        .get();
-    if (existing.docs.isEmpty) {
-      await _col.add({
-        'sessionId': sessionId,
-        'studentId': studentId,
-        'status': status,
-        'markedAt': markedAt.toIso8601String(),
-      });
-    } else {
-      await existing.docs.first.reference.update({
-        'status': status,
-        'markedAt': markedAt.toIso8601String(),
-      });
+    final res = await ApiClient.post('/attendances/upsert', {
+      'sessionId': sessionId,
+      'studentId': studentId,
+      'status': status,
+      'markedAt': markedAt.toIso8601String(),
+    });
+    if (res.statusCode >= 400) {
+      throw StateError('API setAttendanceStatus failed: ${res.statusCode} ${res.body}');
     }
   }
 
   Stream<List<AttendanceModel>> watchForSession(String sessionId) {
-    return _col
-        .where('sessionId', isEqualTo: sessionId)
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => AttendanceModel.fromMap(d.id, d.data()))
-            .toList());
+    return Stream<List<AttendanceModel>>.periodic(const Duration(seconds: 2)).asyncMap((_) async {
+      final res = await ApiClient.get('/attendances', query: {'sessionId': sessionId});
+      if (res.statusCode >= 400) throw StateError('API watchForSession failed: ${res.statusCode}');
+      final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+      return list.map((m) => AttendanceModel.fromMap((m['id'] ?? m['_id'] ?? '').toString(), m)).toList();
+    });
   }
 }

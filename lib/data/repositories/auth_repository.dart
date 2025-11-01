@@ -1,33 +1,52 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import 'dart:convert';
 
-import '../services/firebase_service.dart';
+import '../api/api_client.dart';
+import '../api/auth_token.dart';
+import '../models/auth_user.dart';
 
 class AuthRepository {
-  bool get _ready => FirebaseService.initialized;
-  FirebaseAuth get _auth => FirebaseService.auth;
+  final _controller = StreamController<AuthUser?>.broadcast();
+  AuthUser? _current;
 
-  Stream<User?> authStateChanges() {
-    if (!_ready) return const Stream.empty();
-    return _auth.authStateChanges();
+  Stream<AuthUser?> authStateChanges() => _controller.stream;
+
+  Future<void> signInWithEmail(String email, String password) async {
+    final res = await ApiClient.post('/auth/login', {
+      'email': email,
+      'password': password,
+    });
+    if (res.statusCode >= 400) {
+      throw StateError('Login échoué: ${res.statusCode} ${res.body}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final token = data['token'] as String?;
+    final user = data['user'] as Map<String, dynamic>?;
+    if (token == null || user == null) {
+      throw StateError('Réponse invalide du serveur');
+    }
+    AuthTokenStore.token = token;
+    _current = AuthUser(uid: (user['id'] ?? user['_id']).toString(), email: user['email'] as String?);
+    _controller.add(_current);
   }
 
-  Future<UserCredential> signInWithEmail(String email, String password) async {
-    if (!_ready) {
-      throw StateError('Firebase non configuré. Ajoutez google-services.json/Info.plist.');
+  Future<void> signUpWithEmail(String name, String email, String password, String role) async {
+    final res = await ApiClient.post('/auth/signup', {
+      'name': name,
+      'email': email,
+      'password': password,
+      'role': role,
+    });
+    if (res.statusCode >= 400) {
+      throw StateError('Inscription échouée: ${res.statusCode} ${res.body}');
     }
-    return _auth.signInWithEmailAndPassword(email: email, password: password);
-  }
-
-  Future<UserCredential> signUpWithEmail(String email, String password) async {
-    if (!_ready) {
-      throw StateError('Firebase non configuré. Ajoutez google-services.json/Info.plist.');
-    }
-    return _auth.createUserWithEmailAndPassword(
-        email: email, password: password);
+    // Optionnel: auto-login
+    await signInWithEmail(email, password);
   }
 
   Future<void> signOut() async {
-    if (!_ready) return;
-    await _auth.signOut();
+    AuthTokenStore.token = null;
+    _current = null;
+    _controller.add(null);
   }
 }

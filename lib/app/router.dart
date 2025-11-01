@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../core/config/dev_flags.dart';
 
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/signup_screen.dart';
@@ -27,8 +28,9 @@ class AppRoutes {
 
 class AppRouter {
   static GoRouter build() {
+    final String initial = _initialLocation();
     return GoRouter(
-      initialLocation: AppRoutes.root,
+      initialLocation: initial,
       routes: <RouteBase>[
         GoRoute(
           path: AppRoutes.root,
@@ -76,5 +78,23 @@ class AppRouter {
         ),
       ),
     );
+  }
+
+  static String _initialLocation() {
+    if (DevFlags.hasForceRoute) {
+      DevFlags.debugLog('FORCE_ROUTE=' + DevFlags.forceRoute);
+      return DevFlags.forceRoute;
+    }
+    if (DevFlags.hasForceRole) {
+      DevFlags.debugLog('FORCE_ROLE=' + DevFlags.forceRole);
+      switch (DevFlags.forceRole) {
+        case 'admin':
+        case 'teacher':
+          return AppRoutes.classes;
+        case 'student':
+          return AppRoutes.attendance;
+      }
+    }
+    return AppRoutes.root;
   }
 }

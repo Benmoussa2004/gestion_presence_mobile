@@ -1,42 +1,51 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import '../models/class_model.dart';
-import '../services/firebase_service.dart';
+import '../api/api_client.dart';
 
 class ClassesRepository {
-  final FirebaseFirestore _db = FirebaseService.db;
-
-  CollectionReference<Map<String, dynamic>> get _col => _db.collection('classes');
+  const ClassesRepository();
 
   Future<String> createClass(ClassModel model) async {
-    final doc = await _col.add(model.toMap());
-    return doc.id;
+    final http.Response res = await ApiClient.post('/classes', model.toMap());
+    if (res.statusCode >= 400) {
+      throw StateError('API createClass failed: ${res.statusCode} ${res.body}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return (data['id'] ?? data['_id'] ?? '') as String;
   }
 
   Future<void> updateClass(ClassModel model) async {
-    await _col.doc(model.id).update(model.toMap());
+    final res = await ApiClient.put('/classes/${model.id}', model.toMap());
+    if (res.statusCode >= 400) {
+      throw StateError('API updateClass failed: ${res.statusCode} ${res.body}');
+    }
   }
 
   Future<void> deleteClass(String id) async {
-    await _col.doc(id).delete();
+    final res = await ApiClient.delete('/classes/$id');
+    if (res.statusCode >= 400) {
+      throw StateError('API deleteClass failed: ${res.statusCode} ${res.body}');
+    }
   }
 
   Stream<List<ClassModel>> watchAllClasses() {
-    return _col
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => ClassModel.fromMap(d.id, d.data()))
-            .toList());
+    return Stream<List<ClassModel>>.periodic(const Duration(seconds: 2)).asyncMap((_) async {
+      final res = await ApiClient.get('/classes');
+      if (res.statusCode >= 400) throw StateError('API watchAllClasses failed: ${res.statusCode}');
+      final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+      return list.map((m) => ClassModel.fromMap((m['id'] ?? m['_id'] ?? '').toString(), m)).toList();
+    });
   }
 
   Stream<List<ClassModel>> watchClassesForTeacher(String teacherId) {
-    return _col
-        .where('teacherId', isEqualTo: teacherId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => ClassModel.fromMap(d.id, d.data()))
-            .toList());
+    return Stream<List<ClassModel>>.periodic(const Duration(seconds: 2)).asyncMap((_) async {
+      final res = await ApiClient.get('/classes', query: {'teacherId': teacherId});
+      if (res.statusCode >= 400) throw StateError('API watchClassesForTeacher failed: ${res.statusCode}');
+      final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+      return list.map((m) => ClassModel.fromMap((m['id'] ?? m['_id'] ?? '').toString(), m)).toList();
+    });
   }
 }

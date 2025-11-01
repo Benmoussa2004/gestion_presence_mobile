@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../core/constants/roles.dart';
 import '../../../data/providers.dart';
-import '../../../data/services/firebase_service.dart';
+import '../../../core/config/dev_flags.dart';
 import '../../../data/models/app_user.dart';
 
 /// Écran d'aiguillage en fonction de l'état d'auth et du rôle.
@@ -16,40 +16,7 @@ class RoleRedirectorScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authStateProvider);
     final appUser = ref.watch(currentUserDocProvider);
-    final firebaseReady = FirebaseService.initialized;
-
-    // 1) Si Firebase non configuré => écran d'accueil basique
-    if (!firebaseReady) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Gestion Présence')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                    'Firebase n\'est pas configuré. Ajoutez google-services.json/Info.plist ou firebase_options.dart.'),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => context.go(AppRoutes.login),
-                      child: const Text('Connexion (démo UI)'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => context.go(AppRoutes.signup),
-                      child: const Text('Inscription (démo UI)'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    // Plus de Firebase : on route selon l'état d'auth et le rôle utilisateur.
 
     // 2) Si non connecté => vers login
     if (auth.asData != null && auth.value == null) {
@@ -146,7 +113,7 @@ class _CompleteProfileScreenState extends ConsumerState<_CompleteProfileScreen> 
       final profile = AppUser(
         id: user.uid,
         role: _role,
-        name: _nameCtrl.text.trim().isEmpty ? (user.displayName ?? '') : _nameCtrl.text.trim(),
+        name: _nameCtrl.text.trim().isEmpty ? (user.email?.split('@').first ?? '') : _nameCtrl.text.trim(),
         email: user.email ?? '',
       );
       await ref.read(usersRepositoryProvider).setUser(profile);

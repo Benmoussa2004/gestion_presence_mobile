@@ -1,13 +1,10 @@
 import 'dart:async';
 
-import '../../data/models/app_user.dart';
 import '../../data/repositories/auth_repository.dart';
-import '../../data/repositories/users_repository.dart';
 
 class AuthController {
   final AuthRepository _auth;
-  final UsersRepository _users;
-  const AuthController(this._auth, this._users);
+  const AuthController(this._auth);
 
   Future<void> signIn(String email, String password) {
     return _auth.signInWithEmail(email, password);
@@ -24,10 +21,6 @@ class AuthController {
     required String role,
     Duration profileWriteTimeout = const Duration(seconds: 8),
   }) async {
-    final cred = await _auth.signUpWithEmail(email, password);
-    final uid = cred.user!.uid;
-    final user = AppUser(id: uid, role: role, name: name, email: email);
-    await _users.setUser(user).timeout(profileWriteTimeout, onTimeout: () {});
+    await _auth.signUpWithEmail(name, email, password, role);
   }
 }
-

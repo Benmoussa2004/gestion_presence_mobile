@@ -8,7 +8,7 @@ import 'controllers/sessions_controller.dart';
 import 'controllers/attendance_controller.dart';
 
 final authControllerProvider = Provider<AuthController>((ref) =>
-    AuthController(ref.read(authRepositoryProvider), ref.read(usersRepositoryProvider)));
+    AuthController(ref.read(authRepositoryProvider)));
 
 final usersControllerProvider = Provider<UsersController>((ref) =>
     UsersController(ref.read(usersRepositoryProvider)));

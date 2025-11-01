@@ -163,7 +163,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     // Sélection de la séance
                     if (selectedClassId != null)
                       StreamBuilder<List<SessionModel>>(
-                        stream: sessionsCtrl.watchForClass(selectedClassId!),
+                        stream: sessionsCtrl.watchForClass(selectedClassId),
                         builder: (context, sessSnap) {
                           final sessions = sessSnap.data ?? const <SessionModel>[];
                           if (sessions.isNotEmpty && (_selectedSessionId == null ||
