@@ -25,3 +25,7 @@ final currentUserDocProvider = StreamProvider<AppUser?>((ref) {
   }
   return ref.watch(usersRepositoryProvider).watchUser(user.uid);
 });
+/// URL de ton serveur Node.js
+final apiBaseUrlProvider = Provider<String>(
+  (_) => 'http://localhost:3000', // ✅ pour Flutter Web (Chrome)
+);

@@ -25,12 +25,14 @@ class SessionsRepository {
     if (res.statusCode >= 400) throw StateError('API deleteSession failed: ${res.statusCode} ${res.body}');
   }
 
-  Stream<List<SessionModel>> watchSessionsForClass(String classId) {
-    return Stream<List<SessionModel>>.periodic(const Duration(seconds: 2)).asyncMap((_) async {
+  Stream<List<SessionModel>> watchSessionsForClass(String classId) async* {
+    Future<List<SessionModel>> fetch() async {
       final res = await ApiClient.get('/sessions', query: {'classId': classId});
       if (res.statusCode >= 400) throw StateError('API watchSessionsForClass failed: ${res.statusCode}');
       final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
       return list.map((m) => SessionModel.fromMap((m['id'] ?? m['_id'] ?? '').toString(), m)).toList();
-    });
+    }
+    yield await fetch();
+    yield* Stream<int>.periodic(const Duration(seconds: 6), (i) => i).asyncMap((_) => fetch());
   }
 }

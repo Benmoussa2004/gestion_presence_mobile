@@ -5,38 +5,81 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
-
-// Local signup (optional if not using Firebase Auth)
-router.post('/signup', async (req, res) => {
+// ✅ Enregistrement d’un utilisateur
+router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    if (!email || !password || !role) return res.status(400).json({ error: 'Missing fields' });
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(409).json({ error: 'Email already used' });
+
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Cet email est déjà utilisé' });
+    }
+
+    // Hachage du mot de passe
     const passwordHash = await bcrypt.hash(password, 10);
-    const u = await User.create({ name, email, passwordHash, role });
-    res.status(201).json({ id: u._id.toString(), name: u.name, email: u.email, role: u.role });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+
+    // Création et sauvegarde de l'utilisateur
+    const newUser = new User({
+      name,
+      email,
+      passwordHash,
+      role
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      message: 'Utilisateur créé avec succès ✅',
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role
+      }
+    });
+  } catch (error) {
+    console.error('Erreur lors de l’inscription :', error);
+    res.status(500).json({ message: 'Erreur serveur lors de la création' });
   }
 });
 
-// Local login -> JWT
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
+
+// ✅ Connexion utilisateur
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const u = await User.findOne({ email });
-    if (!u) return res.status(401).json({ error: 'Invalid credentials' });
-    if (!u.passwordHash) return res.status(400).json({ error: 'User has no local password' });
-    const ok = await bcrypt.compare(password, u.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
-    const token = jwt.sign({ sub: u._id.toString(), role: u.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: u._id.toString(), name: u.name, email: u.email, role: u.role } });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid)
+      return res.status(401).json({ message: 'Mot de passe incorrect' });
+
+    // Génération du token JWT
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.json({
+      message: 'Connexion réussie ✅',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Erreur de connexion :', error);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
 export default router;
-

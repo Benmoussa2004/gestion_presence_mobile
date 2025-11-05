@@ -7,5 +7,8 @@ const ClassSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 
+ClassSchema.index({ teacherId: 1 });
+ClassSchema.index({ createdAt: -1 });
+
 export default mongoose.model('Class', ClassSchema);
 

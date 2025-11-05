@@ -21,3 +21,4 @@ final sessionsControllerProvider = Provider<SessionsController>((ref) =>
 
 final attendanceControllerProvider = Provider<AttendanceController>((ref) =>
     AttendanceController(ref.read(attendanceRepositoryProvider)));
+/// URL de ton serveur Node.js

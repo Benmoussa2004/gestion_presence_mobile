@@ -7,5 +7,8 @@ const SessionSchema = new mongoose.Schema({
   code: { type: String }, // optional QR code or session code
 }, { timestamps: true });
 
+SessionSchema.index({ classId: 1 });
+SessionSchema.index({ startAt: 1 });
+
 export default mongoose.model('Session', SessionSchema);
 

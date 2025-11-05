@@ -31,21 +31,25 @@ class ClassesRepository {
     }
   }
 
-  Stream<List<ClassModel>> watchAllClasses() {
-    return Stream<List<ClassModel>>.periodic(const Duration(seconds: 2)).asyncMap((_) async {
+  Stream<List<ClassModel>> watchAllClasses() async* {
+    Future<List<ClassModel>> fetch() async {
       final res = await ApiClient.get('/classes');
       if (res.statusCode >= 400) throw StateError('API watchAllClasses failed: ${res.statusCode}');
       final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
       return list.map((m) => ClassModel.fromMap((m['id'] ?? m['_id'] ?? '').toString(), m)).toList();
-    });
+    }
+    yield await fetch();
+    yield* Stream<int>.periodic(const Duration(seconds: 6), (i) => i).asyncMap((_) => fetch());
   }
 
-  Stream<List<ClassModel>> watchClassesForTeacher(String teacherId) {
-    return Stream<List<ClassModel>>.periodic(const Duration(seconds: 2)).asyncMap((_) async {
+  Stream<List<ClassModel>> watchClassesForTeacher(String teacherId) async* {
+    Future<List<ClassModel>> fetch() async {
       final res = await ApiClient.get('/classes', query: {'teacherId': teacherId});
       if (res.statusCode >= 400) throw StateError('API watchClassesForTeacher failed: ${res.statusCode}');
       final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
       return list.map((m) => ClassModel.fromMap((m['id'] ?? m['_id'] ?? '').toString(), m)).toList();
-    });
+    }
+    yield await fetch();
+    yield* Stream<int>.periodic(const Duration(seconds: 6), (i) => i).asyncMap((_) => fetch());
   }
 }

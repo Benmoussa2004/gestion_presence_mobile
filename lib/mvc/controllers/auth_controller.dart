@@ -12,8 +12,7 @@ class AuthController {
 
   Future<void> signOut() => _auth.signOut();
 
-  /// Creates the auth user and persists the profile document in Firestore.
-  /// Adds a timeout for the profile write so the UI does not get stuck.
+  /// Creates the auth user via the Node/Mongo API.
   Future<void> signUp({
     required String name,
     required String email,

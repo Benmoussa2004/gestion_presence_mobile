@@ -31,7 +31,7 @@ class AuthRepository {
   }
 
   Future<void> signUpWithEmail(String name, String email, String password, String role) async {
-    final res = await ApiClient.post('/auth/signup', {
+    final res = await ApiClient.post('/auth/register', {
       'name': name,
       'email': email,
       'password': password,

@@ -33,12 +33,14 @@ class AttendanceRepository {
     }
   }
 
-  Stream<List<AttendanceModel>> watchForSession(String sessionId) {
-    return Stream<List<AttendanceModel>>.periodic(const Duration(seconds: 2)).asyncMap((_) async {
+  Stream<List<AttendanceModel>> watchForSession(String sessionId) async* {
+    Future<List<AttendanceModel>> fetch() async {
       final res = await ApiClient.get('/attendances', query: {'sessionId': sessionId});
       if (res.statusCode >= 400) throw StateError('API watchForSession failed: ${res.statusCode}');
       final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
       return list.map((m) => AttendanceModel.fromMap((m['id'] ?? m['_id'] ?? '').toString(), m)).toList();
-    });
+    }
+    yield await fetch();
+    yield* Stream<int>.periodic(const Duration(seconds: 6), (i) => i).asyncMap((_) => fetch());
   }
 }

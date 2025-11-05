@@ -25,14 +25,18 @@ class UsersRepository {
     return AppUser.fromMap(data['id'] as String? ?? uid, data);
   }
 
-  Stream<AppUser?> watchUser(String uid) {
-    return Stream<AppUser?>.periodic(const Duration(seconds: 2))
-        .asyncMap((_) => getUser(uid));
+  Stream<AppUser?> watchUser(String uid) async* {
+    Future<AppUser?> fetch() => getUser(uid);
+    yield await fetch();
+    yield* Stream<int>.periodic(const Duration(seconds: 6), (i) => i)
+        .asyncMap((_) => fetch());
   }
 
-  Stream<List<AppUser>> watchUsersByRole(String role) {
-    return Stream<List<AppUser>>.periodic(const Duration(seconds: 2))
-        .asyncMap((_) => getUsersByRole(role));
+  Stream<List<AppUser>> watchUsersByRole(String role) async* {
+    Future<List<AppUser>> fetch() => getUsersByRole(role);
+    yield await fetch();
+    yield* Stream<int>.periodic(const Duration(seconds: 6), (i) => i)
+        .asyncMap((_) => fetch());
   }
 
   Future<List<AppUser>> getUsersByRole(String role) async {

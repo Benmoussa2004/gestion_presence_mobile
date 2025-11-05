@@ -1,6 +1,6 @@
-# Gestion Présence — Skeleton
+# Gestion Présence — Flutter + Node.js + MongoDB
 
-Squelette Flutter minimal pour une app de gestion de présence (enseignant/étudiant) avec Firebase.
+Application Flutter (enseignant/étudiant) avec un backend Node.js/Express et MongoDB. Aucune dépendance Firebase.
 
 ## Structure
 
@@ -8,11 +8,11 @@ Squelette Flutter minimal pour une app de gestion de présence (enseignant/étud
 lib/
  ├─ app/ (router, theme)
  ├─ core/ (constants, widgets communs)
- ├─ data/ (Model): modèles + repositories + services Firebase
+ ├─ data/ (Model + Repos): accès API REST Node.js
  ├─ mvc/
- │   ├─ controllers/ (Controller): logique d’orchestration (Auth/Users/Classes)
- │   └─ providers.dart (injection Riverpod des controllers)
- ├─ features/ (View): écrans/widgets qui consomment les controllers
+ │   ├─ controllers/ (orchestration Auth/Users/Classes/Sessions)
+ │   └─ providers.dart (injection Riverpod)
+ ├─ features/ (View): écrans/widgets
  │   ├─ auth/
  │   ├─ classes/
  │   ├─ sessions/
@@ -23,36 +23,33 @@ lib/
 
 ## Démarrage rapide
 
-1) Configurer Firebase (Android/iOS/Web) dans le projet.
-   - Ajouter les fichiers de config (`google-services.json`, `GoogleService-Info.plist`) ou `firebase_options.dart` (FlutterFire CLI)
-2) Lancer `flutter pub get` pour installer les dépendances.
-3) `flutter run`
+### Backend (Node.js/Express + MongoDB)
+1) Créer `server/.env`:
+   - `MONGO_URI=mongodb://localhost:27017/gestion_presence`
+   - `JWT_SECRET=votre_chaine_secrete`
+2) Depuis `server/` :
+   - `npm install`
+   - `npm run start`
+3) Vérifier: `GET http://localhost:3000/health` → `{ ok: true }`
 
-Note: `FirebaseService.ensureInitialized()` capture les erreurs d'init pour permettre l'exécution même sans configuration complète. Les écrans (View) s’appuient désormais sur des Controllers (MVC) exposés via Riverpod.
+### Frontend (Flutter)
+1) `flutter pub get`
+2) Lancer l’app en pointant l’API:
+   - Desktop/Web: `flutter run --dart-define=BACKEND=api --dart-define=API_BASE_URL=http://localhost:3000`
+   - Android émulateur: `flutter run --dart-define=BACKEND=api --dart-define=API_BASE_URL=http://10.0.2.2:3000`
 
-### MVC dans ce projet
-- Model: `lib/data/models/*` (+ repositories comme source de données)
+### Architecture UI
+- Model: `lib/data/models/*` (+ repositories qui consomment l’API REST)
 - View: `lib/features/**` (UI)
-- Controller: `lib/mvc/controllers/*` (orchestration et API pour la View)
+- Controller: `lib/mvc/controllers/*` (orchestration et appels repos)
 
 Exemples:
 - Auth: `AuthController` (inscription/connexion/déconnexion) consommé par `LoginScreen`/`SignupScreen`.
 - Classes: `ClassesController` (watch/create/update/delete) consommé par `ClassesScreen` et `ClassEditorDialog`.
 - Users: `UsersController` (compteurs par rôle, flux d’utilisateurs) consommé par `UsersCounters` et `StatsScreen`.
 
-## Règles Firestore/Storage
-
-Voir `firebase/firestore.rules` et `firebase/storage.rules` (extrait minimal à adapter).
-
-Astuce: si vous n'utilisez pas de Custom Claims pour le rôle, vous pouvez baser les règles sur le document utilisateur:
-
-```
-function userRole() {
-  return get(/databases/$(db)/documents/users/$(request.auth.uid)).data.role;
-}
-function isTeacher() { return userRole() == 'teacher'; }
-function isStudent() { return userRole() == 'student'; }
-```
+## Sécurité API
+Le backend émet un JWT lors du login (`/auth/login`). Pour protéger des routes, ajoutez un middleware de vérification du token côté Express et appliquez-le aux routes nécessaires.
 
 ## Board de tâches
 
@@ -60,19 +57,10 @@ Un CSV importable (Trello/Notion) est fourni: `project_board.csv`.
 
 ## Prochaines étapes suggérées
 
-- Brancher l'authentification (email/mot de passe) et la redirection par rôle.
-- Implémenter CRUD classes + affectation étudiants.
-- Générer et scanner des QR pour marquer la présence.
-- Ajouter l'historique et les statistiques (fl_chart).
-- Mettre en place FCM + notifications.
+- Middleware JWT sur routes sensibles
+- CRUD complet Classes/Sessions/Présences côté UI
+- Scanner QR côté mobile (déjà présent en squelette UI)
+- Stats (fl_chart) basées sur données MongoDB
 
-## Cloud Functions (squelette)
-
-Un dossier `functions/` (TypeScript) fournit:
-- `verifySessionCode` (callable): vérifie `sessionId|code` côté serveur.
-- `onAttendanceCreate` (trigger): notifie l'étudiant si `status=='absent'` (token attendu dans `users/{uid}.fcmToken`).
-- `checkRepeatedAbsences` (squelette, commenté): job planifié pour notifications enseignants.
-
-Commande type:
-- `cd functions && npm install`
-- `npm run build && firebase deploy --only functions`
+## Remarque
+Le dossier `functions/` (Firebase) n’est plus utilisé dans cette version. Vous pouvez l’ignorer ou le supprimer si vous n’en avez pas besoin.
