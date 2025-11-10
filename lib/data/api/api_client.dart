@@ -10,12 +10,12 @@ import 'auth_token.dart';
 
 class ApiClient {
   static final http.Client _client = http.Client();
-  static const Duration _timeout = Duration(seconds: 8);
+  static const Duration _timeout = Duration(seconds: 30);
 
   static String _defaultBase() {
     if (kIsWeb) return 'http://localhost:3000';
     try {
-      if (Platform.isAndroid) return 'http://10.0.2.2:3000';
+      if (Platform.isAndroid) return 'http://10.165.216.47:3000';
     } catch (_) {
       // ignore platform check errors
     }

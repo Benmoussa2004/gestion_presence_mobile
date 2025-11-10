@@ -21,7 +21,7 @@ class DevFlags {
   static bool get hasForceRole => forceRole.isNotEmpty;
   static bool get hasForceRoute => forceRoute.isNotEmpty;
   static bool get useApi => backend.toLowerCase() == 'api';
-  static String get apiBase => apiBaseUrl.isNotEmpty ? apiBaseUrl : 'http://10.0.2.2:3000';
+  static String get apiBase => apiBaseUrl.isNotEmpty ? apiBaseUrl : 'http://10.165.216.47:3000';
 
   /// Simple helper for local debug logs if needed.
   static void debugLog(String message) {
