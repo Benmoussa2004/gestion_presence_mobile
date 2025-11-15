@@ -27,8 +27,13 @@ class DevFlags {
     }
 
     // ⚠️ Default fallback cloud (à personnaliser)
-    return "https://TON_BACKEND_CLOUD_URL.com";
+    return "https://gestion-presence-mobile-1.onrender.com";
   }
+/// true si un FORCE_ROUTE est défini
+static bool get hasForceRoute => forceRoute.isNotEmpty;
+
+/// true si un FORCE_ROLE est défini
+static bool get hasForceRole => forceRole.isNotEmpty;
 
   /// Simple helper logs
   static void debugLog(String message) {

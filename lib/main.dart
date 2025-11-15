@@ -17,7 +17,7 @@ Future<void> main() async {
       final discoveredIP = await IpDiscoveryService.discoverServerIP(port: 3000);
       if (discoveredIP != null) {
         // Initialiser ApiClient avec l'IP découverte
-        await ApiClient.initializeFromCache();
+          // await ApiClient.initializeFromCache(); // supprimé
         debugPrint('✅ IP serveur détectée et mise en cache: $discoveredIP');
         debugPrint('📱 L\'application utilisera: http://$discoveredIP:3000');
       } else {
