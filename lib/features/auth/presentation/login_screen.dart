@@ -225,11 +225,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // Lien d'inscription
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Pas de compte ? ',
-                        style: TextStyle(
-                          color: colorScheme.onBackground.withOpacity(0.6),
+                      Flexible(
+                        child: Text(
+                          'Pas de compte ? ',
+                          style: TextStyle(
+                            color: colorScheme.onBackground.withOpacity(0.6),
+                          ),
                         ),
                       ),
                       GestureDetector(

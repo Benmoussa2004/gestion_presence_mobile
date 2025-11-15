@@ -35,6 +35,9 @@ dependencies:
   # Stockage local pour le token JWT
   shared_preferences: ^2.5.3
 
+  # Détection réseau automatique
+  network_info_plus: ^6.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

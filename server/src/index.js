@@ -11,31 +11,40 @@ app.use(cors());
 app.use(compression());
 app.use(express.json());
 
+// ----------------------------
+// CONFIG
+// ----------------------------
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/gestion_presence';
+const MONGO_URI = process.env.MONGO_URI 
+  || "mongodb+srv://benmoussamohamedamine04_db_user:Benmoussa2004@cluster0.8qdohdr.mongodb.net/gestion_presence?retryWrites=true&w=majority";
 
-// ✅ Connexion MongoDB
+// ----------------------------
+// DATABASE CONNECTION
+// ----------------------------
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch((e) => {
-    console.error('MongoDB connection error', e);
-    process.exit(1);
-  });
+  .then(() => console.log("✔️ MongoDB Atlas connecté"))
+  .catch(err => console.error("❌ Erreur connexion MongoDB:", err));
 
-// ✅ Imports uniques — pas de doublons !
+// ----------------------------
+// ROUTES
+// ----------------------------
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import classesRoutes from './routes/classes.js';
 import sessionsRoutes from './routes/sessions.js';
 import attendanceRoutes from './routes/attendances.js';
 
-// ✅ Routes
 app.get('/health', (req, res) => res.json({ ok: true }));
+
 app.use('/auth', authRoutes);
 app.use('/users', usersRoutes);
 app.use('/classes', classesRoutes);
 app.use('/sessions', sessionsRoutes);
 app.use('/attendances', attendanceRoutes);
 
-// ✅ Démarrage du serveur
-app.listen(PORT, () => console.log(`API running on :${PORT}`));
+// ----------------------------
+// SERVER CLOUD
+// ----------------------------
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Backend en ligne et écoute sur le port ${PORT}`);
+});

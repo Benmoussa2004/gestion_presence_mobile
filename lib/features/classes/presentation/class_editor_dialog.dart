@@ -97,9 +97,24 @@ class _ClassEditorDialogState extends ConsumerState<_ClassEditorDialog> {
       }
 
       final bytes = result.files.first.bytes ?? await result.files.first.xFile.readAsBytes();
-      final excel = Excel.decodeBytes(bytes);
       
-      if (excel.tables.isEmpty) {
+      Excel? excel;
+      try {
+        excel = Excel.decodeBytes(bytes);
+      } catch (e) {
+        // Si le package excel échoue, essayer une approche alternative
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur lors de la lecture du fichier Excel. Veuillez vérifier que le fichier n\'est pas corrompu. Erreur: ${e.toString()}'),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
+      
+      if (excel == null || excel.tables.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Fichier Excel vide ou invalide')));
@@ -108,8 +123,9 @@ class _ClassEditorDialogState extends ConsumerState<_ClassEditorDialog> {
       }
 
       // Prendre la première feuille
-      final sheet = excel.tables[excel.tables.keys.first]!;
-      if (sheet.rows.isEmpty) {
+      final sheetName = excel.tables.keys.first;
+      final sheet = excel.tables[sheetName];
+      if (sheet == null || sheet.rows.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Feuille Excel vide')));

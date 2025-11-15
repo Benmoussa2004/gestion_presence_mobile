@@ -300,14 +300,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                 )
                                     : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(Icons.person_add_alt_1, size: 20),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      'Créer le compte',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
+                                    Flexible(
+                                      child: Text(
+                                        'Créer le compte',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ],
